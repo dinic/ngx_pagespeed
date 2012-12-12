@@ -18,6 +18,7 @@
 
 #include "ngx_rewrite_driver_factory.h"
 #include "ngx_rewrite_options.h"
+#include "ngx_url_async_fetcher.h"
 
 #include <cstdio>
 
@@ -72,7 +73,8 @@ class Writer;
 
 const char NgxRewriteDriverFactory::kMemcached[] = "memcached";
 
-NgxRewriteDriverFactory::NgxRewriteDriverFactory() :
+NgxRewriteDriverFactory::NgxRewriteDriverFactory(ngx_log_t* log,
+    ngx_msec_t resolver_timeout, ngx_resolver_t* resolver) :
   shared_mem_runtime_(new NullSharedMem()),
   cache_hasher_(20) {
   RewriteDriverFactory::InitStats(&simple_stats_);
@@ -85,6 +87,10 @@ NgxRewriteDriverFactory::NgxRewriteDriverFactory() :
   timer_ = DefaultTimer();
   apr_initialize();
   apr_pool_create(&pool_,NULL);
+  log_ = log;
+  resolver_timeout_ = resolver_timeout_;
+  resolver_ = resolver;
+  ngx_url_async_fetcher_ = NULL;
   InitializeDefaultOptions();
 }
 
@@ -116,19 +122,20 @@ Hasher* NgxRewriteDriverFactory::NewHasher() {
 }
 
 UrlFetcher* NgxRewriteDriverFactory::DefaultUrlFetcher() {
-  return new WgetUrlFetcher;
+  return NULL;
 }
 
 UrlAsyncFetcher* NgxRewriteDriverFactory::DefaultAsyncUrlFetcher() {
-  net_instaweb::UrlAsyncFetcher* fetcher =
-      new net_instaweb::SerfUrlAsyncFetcher(
-          "",
-          pool_,
-          thread_system(),
-          statistics(),
-          timer(),
-          2500,
-          message_handler());
+  net_instaweb::NgxUrlAsyncFetcher* fetcher =
+    new net_instaweb::NgxUrlAsyncFetcher(
+        "",
+        log_,
+        resolver_timeout_,
+        60000,
+        resolver_,
+        thread_system(),
+        message_handler());
+  ngx_url_async_fetcher_ = fetcher;
   return fetcher;
 }
 
@@ -322,6 +329,13 @@ CacheInterface* NgxRewriteDriverFactory::GetFilesystemMetadataCache(
   }
 
   return NULL;
+}
+
+bool NgxRewriteDriverFactory::InitNgxUrlAsyncFecther() {
+  if (ngx_url_async_fetcher_ == NULL) {
+    return true;
+  }
+  return ngx_url_async_fetcher_->Init();
 }
 
 }  // namespace net_instaweb

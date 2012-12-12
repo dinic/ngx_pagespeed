@@ -19,6 +19,12 @@
 #ifndef NGX_REWRITE_DRIVER_FACTORY_H_
 #define NGX_REWRITE_DRIVER_FACTORY_H_
 
+extern "C" {
+#include <ngx_core.h>
+#include <ngx_http.h>
+#include <ngx_config.h>
+}
+
 #include "base/scoped_ptr.h"
 #include "net/instaweb/rewriter/public/rewrite_driver_factory.h"
 #include "net/instaweb/util/public/md5_hasher.h"
@@ -41,13 +47,15 @@ class NgxRewriteOptions;
 class AprMemCache;
 class CacheInterface;
 class AsyncCache;
+class NgxUrlAsyncFetcher;
 
 class NgxRewriteDriverFactory : public RewriteDriverFactory {
  public:
   static const char kStaticJavaScriptPrefix[];
   static const char kMemcached[];
 
-  NgxRewriteDriverFactory();
+  NgxRewriteDriverFactory(ngx_log_t* log, ngx_msec_t resolver_timeout,
+      ngx_resolver_t* resolver);
   virtual ~NgxRewriteDriverFactory();
   virtual Hasher* NewHasher();
   virtual UrlFetcher* DefaultUrlFetcher();
@@ -65,6 +73,7 @@ class NgxRewriteDriverFactory : public RewriteDriverFactory {
   // Initializes the StaticJavascriptManager.
   virtual void InitStaticJavascriptManager(
       StaticJavascriptManager* static_js_manager);
+  bool InitNgxUrlAsyncFecther();
 
   AbstractSharedMem* shared_mem_runtime() const {
     return shared_mem_runtime_.get();
@@ -124,6 +133,10 @@ private:
   std::vector<AprMemCache*> memcache_servers_;
   std::vector<AsyncCache*> async_caches_;
 
+  NgxUrlAsyncFetcher* ngx_url_async_fetcher_;
+  ngx_log_t* log_;
+  ngx_msec_t resolver_timeout_;
+  ngx_resolver_t* resolver_;
   DISALLOW_COPY_AND_ASSIGN(NgxRewriteDriverFactory);
 };
 

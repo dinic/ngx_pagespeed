@@ -274,6 +274,9 @@ ps_header_filter(ngx_http_request_t* r);
 ngx_int_t
 ps_init(ngx_conf_t* cf);
 
+ngx_int_t
+ps_init_process(ngx_cycle_t* cycle);
+
 char*
 ps_srv_configure(ngx_conf_t* cf, ngx_command_t* cmd, void* conf);
 
@@ -453,7 +456,10 @@ ps_merge_srv_conf(ngx_conf_t* cf, void* parent, void* child) {
     // we're done with it.  That never happens, though, because this is the
     // top-level config and so sticks around as long as we're running.
 
-    cfg_m->driver_factory = new net_instaweb::NgxRewriteDriverFactory();
+    ngx_http_core_loc_conf_t* clcf = static_cast<ngx_http_core_loc_conf_t*>(
+        ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module));
+    cfg_m->driver_factory = new net_instaweb::NgxRewriteDriverFactory(clcf->error_log,
+        clcf->resolver_timeout, clcf->resolver);
   }
 
   cfg_s->server_context = new net_instaweb::NgxServerContext(
@@ -1386,6 +1392,18 @@ ps_init(ngx_conf_t* cf) {
   return NGX_OK;
 }
 
+ngx_int_t
+ps_init_process(ngx_cycle_t* cycle) {
+  ps_main_conf_t* cfg_m = static_cast<ps_main_conf_t*>(
+      ngx_http_cycle_get_module_main_conf(cycle, ngx_pagespeed));
+  if (cfg_m->driver_factory != NULL) {
+    if (cfg_m->driver_factory->InitNgxUrlAsyncFecther()) {
+      return NGX_OK;
+    }
+  }
+  return NGX_OK;
+}
+
 ngx_http_module_t ps_module = {
   NULL,  // preconfiguration
   ps_init,  // postconfiguration
@@ -1411,7 +1429,7 @@ ngx_module_t ngx_pagespeed = {
   NGX_HTTP_MODULE,
   NULL,
   NULL,
-  NULL,
+  ngx_psol::ps_init_process,
   NULL,
   NULL,
   NULL,

@@ -89,6 +89,8 @@ ngx_feature_test="
 if [ $ngx_found = yes ]; then
   ps_src="$ngx_addon_dir/src"
   ngx_addon_name=ngx_pagespeed
+  NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ps_src/ngx_fetch.h"
+  NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ps_src/ngx_url_async_fetcher.h"
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/../../mod_pagespeed/src/net/instaweb/apache/apr_thread_compatible_pool.cc"
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/../../mod_pagespeed/src/net/instaweb/apache/serf_url_async_fetcher.cc"
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/../../mod_pagespeed/src/net/instaweb/apache/apr_mem_cache.cc"
@@ -100,6 +102,8 @@ if [ $ngx_found = yes ]; then
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/ngx_server_context.cc"
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/ngx_base_fetch.cc"
   NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/ngx_cache.cc"
+  NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/ngx_url_async_fetcher.cc"
+  NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ps_src/ngx_fetch.cc"
   HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES $ngx_addon_name"
   CORE_LIBS="$CORE_LIBS 
              $pagespeed_libs
